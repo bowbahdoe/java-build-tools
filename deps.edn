@@ -1,0 +1,4 @@
+{:paths ["target"]
+ :aliases {:dev {:extra-paths ["src"]}}
+ :deps {org.clojure/clojure {:mvn/version "1.10.1"}
+        io.github.clojure/tools.build {:git/tag "v0.7.4" :git/sha "ac442da"}}}
