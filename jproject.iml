@@ -1,11 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <module cursive.leiningen.project.DepsProjectsManager.isLeinModule="true" cursive.leiningen.project.LeiningenProjectsManager.displayName="jproject" type="JAVA_MODULE" version="4">
+  <component name="BuildSystem">
+    <option name="buildSystemId" value="CLOJURE_DEPS" />
+    <option name="displayName" value="jproject" />
+  </component>
   <component name="NewModuleRootManager" inherit-compiler-output="true">
     <exclude-output />
     <content url="file://$MODULE_DIR$">
       <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/target" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/test" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/build" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/target/classes" isTestSource="false" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
@@ -65,7 +70,7 @@
     <orderEntry type="library" name="Deps: org.clojure/tools.gitlibs:2.4.172" level="project" />
     <orderEntry type="library" name="Deps: org.apache.maven.resolver/maven-resolver-connector-basic:1.6.3" level="project" />
     <orderEntry type="library" name="Deps: com.cognitect.aws/s3:814.2.991.0" level="project" />
-    <orderEntry type="library" name="Deps: " level="project" />
+    <orderEntry type="library" name="Deps: io.github.clojure/tools.build:ac442d" level="project" />
     <orderEntry type="library" name="Deps: org.apache.maven.resolver/maven-resolver-impl:1.6.3" level="project" />
     <orderEntry type="library" name="Deps: org.slf4j/slf4j-api:1.7.32" level="project" />
     <orderEntry type="library" name="Deps: org.apache.maven/maven-model:3.8.4" level="project" />

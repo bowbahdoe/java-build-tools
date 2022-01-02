@@ -22,6 +22,7 @@ public final class BuildTools {
     private static final IFn ASSOC;
 
     private static final IFn KEYWORD;
+    private static final IFn SYMBOL;
     private static final IFn HASH_MAP;
     private static final IFn VECTOR;
 
@@ -31,6 +32,8 @@ public final class BuildTools {
     private static final IFn API_CREATE_BASIS;
     private static final IFn API_DELETE;
     private static final IFn API_GIT_COUNT_REVS;
+
+    private static final IFn API_JAR;
 
     private static final IFn API_JAVAC;
 
@@ -45,6 +48,7 @@ public final class BuildTools {
         ASSOC = Clojure.var("clojure.core","assoc");
 
         KEYWORD = Clojure.var("clojure.core", "keyword");
+        SYMBOL = Clojure.var("clojure.core", "symbol");
         HASH_MAP = Clojure.var("clojure.core", "hash-map");
         VECTOR = Clojure.var("clojure.core", "vector");
 
@@ -59,7 +63,7 @@ public final class BuildTools {
         API_GIT_COUNT_REVS = Clojure.var(api, "git-count-revs");
         // git-process
         // install
-        // jar
+        API_JAR = Clojure.var(api, "jar");
         // java-command
         API_JAVAC = Clojure.var(api, "javac");
         // pom-path
@@ -165,6 +169,10 @@ public final class BuildTools {
         API_DELETE.invoke(path);
     }
 
+    /**
+     * Shells out to git and returns count of commits on this branch:
+     *   git rev-list HEAD --count
+     */
     public Long gitCountRevs(GitCountRevsOptions options) {
         Object args = Clojure.read("{}");
         if (options.dir != null) {
@@ -177,7 +185,36 @@ public final class BuildTools {
             args = ASSOC.invoke(args, Clojure.read(":include"), options.path);
         }
 
-        return (Long) API_GIT_COUNT_REVS.invoke(args);
+        Object revs = API_GIT_COUNT_REVS.invoke(args);
+        if (revs == null) {
+            return null;
+        }
+        else if (revs instanceof Long l) {
+            return l;
+        }
+        else {
+            return Long.parseLong((String) revs);
+        }
+    }
+
+    public void jar(String classDir, String jarFile) {
+        jar(classDir, jarFile, JarOptions.builder().build());
+    }
+
+    public void jar(String classDir, String jarFile, JarOptions options) {
+        Objects.requireNonNull(classDir);
+        Objects.requireNonNull(jarFile);
+        Objects.requireNonNull(options);
+
+        Object args = HASH_MAP.invoke(
+                Clojure.read(":class-dir"), classDir,
+                Clojure.read(":jar-file"), jarFile
+        );
+        if (options.main != null) {
+            args = ASSOC.invoke(args, Clojure.read(":main"), SYMBOL.invoke(options.main));
+        }
+
+        API_JAR.invoke(args);
     }
 
     public void javac(
@@ -225,6 +262,7 @@ public final class BuildTools {
     }
 
     public static void main(String[] args) {
+        // ~/Library/Java/JavaVirtualMachines/openjdk-17/Contents/Home/bin/javac --enable-preview --source 17 -cp $(clj -Spath) src/**/*.java -d target && ~/Library/Java/JavaVirtualMachines/openjdk-17/Contents/Home/bin/java --enable-preview  -cp $(clj -Spath) dev/mccue/jproject/BuildTools
         /* BuildTools.getInstance().zip(
                 List.of("src"),
                 "out.zip"
@@ -250,9 +288,20 @@ public final class BuildTools {
                 buildTools.createBasis()
         ); */
 
-        System.out.println(BuildTools.getInstance().gitCountRevs(
+        /*System.out.println(BuildTools.getInstance().gitCountRevs(
                 GitCountRevsOptions.builder().build()
-        ));
+        ));*/
+
+        /*
+        System.out.println("EXECUTING");
+        BuildTools.getInstance().jar(
+                "target",
+                "out.jar",
+                JarOptions.builder().main("dev.mccue.jproject.BuildTools").build()
+        );
+         ~/Library/Java/JavaVirtualMachines/openjdk-17/Contents/Home/bin/java --enable-preview -jar out.jar  -cp $(clj -Spath)
+         */
+        // ~/Library/Java/JavaVirtualMachines/openjdk-17/Contents/Home/bin/javac --enable-preview --source 17 -cp $(clj -Spath) src/**/*.java -d target && ~/Library/Java/JavaVirtualMachines/openjdk-17/Contents/Home/bin/java --enable-preview  -cp $(clj -Spath) dev/mccue/jproject/BuildTools
     }
 
 }
