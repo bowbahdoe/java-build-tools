@@ -17,6 +17,7 @@ public final class JarOptions {
     public static Builder builder() {
         return new Builder();
     }
+
     public static final class Builder {
         private String main;
 

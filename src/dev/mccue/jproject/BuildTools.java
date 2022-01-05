@@ -9,73 +9,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.function.Supplier;
+import static dev.mccue.jproject.Requires.*;
 
 public final class BuildTools {
     private BuildTools() {}
 
     private static final BuildTools INSTANCE = new BuildTools();
 
-    private static final IFn DEREF;
-    private static final IFn SEQ;
-
-    private static final IFn INTO;
-    private static final IFn ASSOC;
-
-    private static final IFn KEYWORD;
-    private static final IFn SYMBOL;
-    private static final IFn HASH_MAP;
-    private static final IFn VECTOR;
-
-    private static final IFn API_PROJECT_ROOT;
-    private static final IFn API_COPY_DIR;
-    private static final IFn API_COPY_FILE;
-    private static final IFn API_CREATE_BASIS;
-    private static final IFn API_DELETE;
-    private static final IFn API_GIT_COUNT_REVS;
-
-    private static final IFn API_JAR;
-
-    private static final IFn API_JAVAC;
-
-    private static final IFn API_SET_PROJECT_ROOT;
-
-    private static final IFn API_ZIP;
-
-    static {
-        DEREF = Clojure.var("clojure.core","deref");
-        SEQ = Clojure.var("clojure.core","seq");
-        INTO = Clojure.var("clojure.core","into");
-        ASSOC = Clojure.var("clojure.core","assoc");
-
-        KEYWORD = Clojure.var("clojure.core", "keyword");
-        SYMBOL = Clojure.var("clojure.core", "symbol");
-        HASH_MAP = Clojure.var("clojure.core", "hash-map");
-        VECTOR = Clojure.var("clojure.core", "vector");
-
-        IFn REQUIRE = Clojure.var("clojure.core", "require");
-        String api = "clojure.tools.build.api";
-        REQUIRE.invoke(Clojure.read(api));
-        API_PROJECT_ROOT = Clojure.var(api, "*project-root*");
-        API_COPY_DIR = Clojure.var(api, "copy-dir");
-        API_COPY_FILE = Clojure.var(api, "copy-file");
-        API_CREATE_BASIS = Clojure.var(api, "create-basis");
-        API_DELETE = Clojure.var(api, "delete");
-        API_GIT_COUNT_REVS = Clojure.var(api, "git-count-revs");
-        // git-process
-        // install
-        API_JAR = Clojure.var(api, "jar");
-        // java-command
-        API_JAVAC = Clojure.var(api, "javac");
-        // pom-path
-        // process
-        // resolve-path
-        API_SET_PROJECT_ROOT = Clojure.var(api, "set-project-root!");
-        // uber
-        // unzip
-        // write-file
-        // write-pom
-        API_ZIP = Clojure.var(api, "zip");
-    }
 
     /**
      * Project root path, defaults to current directory.
@@ -84,6 +25,28 @@ public final class BuildTools {
      */
     public String projectRoot() {
         return (String) DEREF.invoke(API_PROJECT_ROOT);
+    }
+
+    /**
+     * Sets the project root in the given scope.
+     */
+    @SuppressWarnings("unchecked")
+    public <T> T withProjectRoot(String projectRoot, Supplier<T> callable) {
+        var sym = GENSYM.invoke();
+        var code = LIST.invoke(
+                SYMBOL.invoke("fn"),
+                VECTOR.invoke(sym),
+                LIST.invoke(
+                    SYMBOL.invoke("clojure.core", "binding"),
+                    VECTOR.invoke(
+                            SYMBOL.invoke("clojure.tools.build.api", "*project-root*"),
+                            projectRoot
+                    ),
+                        LIST.invoke(SYMBOL.invoke(".get"), sym)
+                )
+        );
+
+        return (T) ((IFn) EVAL.invoke(code)).invoke(callable);
     }
 
     /**
@@ -142,7 +105,7 @@ public final class BuildTools {
 
         Function<DepSource, Object> toClojure = depSource ->
             switch (depSource) {
-                case DepSource.Standard standard -> Clojure.read(":standard");
+                case DepSource.Standard __ -> Clojure.read(":standard");
                 case DepSource.Path path -> path.path();
             };
 
@@ -174,29 +137,65 @@ public final class BuildTools {
      *   git rev-list HEAD --count
      */
     public Long gitCountRevs(GitCountRevsOptions options) {
+        Objects.requireNonNull(options);
+
         Object args = Clojure.read("{}");
         if (options.dir != null) {
             args = ASSOC.invoke(args, Clojure.read(":include"), options.dir);
         }
         if (options.gitCommand != null) {
-            args = ASSOC.invoke(args, Clojure.read(":include"), options.gitCommand);
+            args = ASSOC.invoke(args, Clojure.read(":git-command"), options.gitCommand);
         }
         if (options.path != null) {
-            args = ASSOC.invoke(args, Clojure.read(":include"), options.path);
+            args = ASSOC.invoke(args, Clojure.read(":path"), options.path);
         }
 
         Object revs = API_GIT_COUNT_REVS.invoke(args);
         if (revs == null) {
             return null;
         }
-        else if (revs instanceof Long l) {
-            return l;
+        else if (revs instanceof Number n) {
+            return n.longValue();
         }
         else {
             return Long.parseLong((String) revs);
         }
     }
 
+    public String gitProcess(List<String> gitArgs) {
+        return gitProcess(gitArgs, GitProcessOptions.builder().build());
+    }
+
+    /**
+     * Run git process in the specified dir using git-command with git-args (which should not
+     * start with "git"). By default, stdout is captured, trimmed, and returned.
+     */
+    public String gitProcess(List<String> gitArgs, GitProcessOptions options) {
+        Object args = HASH_MAP.invoke(
+                Clojure.read(":git-args"), VEC.invoke(gitArgs)
+        );
+        if (options.capture != null) {
+
+            args = ASSOC.invoke(args, Clojure.read(":capture"), switch (options.capture) {
+                case OUT -> Clojure.read(":out");
+                case ERR -> Clojure.read(":err");
+                case NOTHING -> null;
+            });
+        }
+        if (options.dir != null) {
+            args = ASSOC.invoke(args, Clojure.read(":dir"), options.dir);
+        }
+        if (options.gitCommand != null) {
+            args = ASSOC.invoke(args, Clojure.read(":git-command"), options.gitCommand);
+        }
+
+        return (String) API_GIT_PROCESS.invoke(args);
+    }
+
+    public void install(InstallOptions options) {
+
+        API_INSTALL.invoke();
+    }
     public void jar(String classDir, String jarFile) {
         jar(classDir, jarFile, JarOptions.builder().build());
     }
@@ -244,6 +243,12 @@ public final class BuildTools {
         API_SET_PROJECT_ROOT.invoke(newProjectRoot);
     }
 
+    public <ConflictHandlerState> void uber(
+            UberOptions<ConflictHandlerState> options
+    ) {
+        API_UBER.invoke(options.toClojure());
+    }
+
     /**
      * Create zip file containing contents of src dirs.
      *
@@ -262,11 +267,27 @@ public final class BuildTools {
     }
 
     public static void main(String[] args) {
+        /*var buildTools = BuildTools.getInstance();
+
+        buildTools.javac(
+                List.of("src"),
+                "target/classes",
+                List.of("-source", "17", "--enable-preview"),
+                buildTools.createBasis()
+        );*/
         // ~/Library/Java/JavaVirtualMachines/openjdk-17/Contents/Home/bin/javac --enable-preview --source 17 -cp $(clj -Spath) src/**/*.java -d target && ~/Library/Java/JavaVirtualMachines/openjdk-17/Contents/Home/bin/java --enable-preview  -cp $(clj -Spath) dev/mccue/jproject/BuildTools
         /* BuildTools.getInstance().zip(
                 List.of("src"),
                 "out.zip"
         ); */
+
+        /*
+        var buildTools = BuildTools.getInstance();
+        System.out.println(buildTools.withProjectRoot(
+                "a/d",
+                buildTools::projectRoot
+        ));
+         */
 
 
 
@@ -301,6 +322,40 @@ public final class BuildTools {
         );
          ~/Library/Java/JavaVirtualMachines/openjdk-17/Contents/Home/bin/java --enable-preview -jar out.jar  -cp $(clj -Spath)
          */
+
+        /* System.out.println(BuildTools.getInstance().gitProcess(List.of(
+                "branch",
+                "--show-current"
+        )).getClass());
+        */
+        /*
+        System.out.println(BuildTools.getInstance().gitProcess(List.of(
+                "branch",
+                "--show-current"
+        )));
+
+        System.out.println(
+                BuildTools.getInstance().gitProcess(List.of(
+                "branch",
+                "--show-current"),
+                GitProcessOptions.builder()
+                        .capture(GitProcessOptions.Capture.NOTHING).build()));
+        */
+
+        /*
+        System.out.println(Clojure.var("clojure.pprint", "pprint").invoke(
+                BuildTools.getInstance().createBasis().rawBasisObject
+        ));
+
+        BuildTools.getInstance().uber(
+                UberOptions
+                        .builder()
+                        .conflictHandlers(Map.of("something", new ConflictHandler.Append<>()))
+                        .build()
+        );
+
+         */
+
         // ~/Library/Java/JavaVirtualMachines/openjdk-17/Contents/Home/bin/javac --enable-preview --source 17 -cp $(clj -Spath) src/**/*.java -d target && ~/Library/Java/JavaVirtualMachines/openjdk-17/Contents/Home/bin/java --enable-preview  -cp $(clj -Spath) dev/mccue/jproject/BuildTools
     }
 
