@@ -10,10 +10,8 @@
     (println "Compiling Java")
     (let [class-dir "target/classes"]
       (b/delete {:path class-dir})
-      (b/copy-dir {:src-dirs ["src"]
-                   :target-dir "target/classes"})
       (b/javac
         {:src-dirs   ["src"]
          :class-dir  class-dir
          :basis      basis
-         :javac-opts ["-source" "17" "-target" "17" "--enable-preview"]}))))
+         :javac-opts ["-source" "17" "-target" "17" "--enable-preview" "-g"]}))))

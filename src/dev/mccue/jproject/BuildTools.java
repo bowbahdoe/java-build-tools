@@ -162,6 +162,10 @@ public final class BuildTools {
         }
     }
 
+    public Long gitCountRevs() {
+        return gitCountRevs(GitCountRevsOptions.builder().build());
+    }
+
     public String gitProcess(List<String> gitArgs) {
         return gitProcess(gitArgs, GitProcessOptions.builder().build());
     }
