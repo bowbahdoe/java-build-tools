@@ -122,6 +122,9 @@ public final class BuildTools {
         if (options.extra != null) {
             args = ASSOC.invoke(args, Clojure.read(":extra"), toClojure.apply(options.extra));
         }
+        if (options.aliases != null) {
+            args = ASSOC.invoke(args, Clojure.read(":aliases"), VEC.invoke(options.aliases));
+        }
         return new Basis(API_CREATE_BASIS.invoke(args));
     }
 

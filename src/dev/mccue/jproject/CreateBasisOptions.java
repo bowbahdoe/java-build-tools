@@ -1,17 +1,20 @@
 package dev.mccue.jproject;
 
+import java.util.List;
+
 public final class CreateBasisOptions {
     final DepSource root;
     final DepSource user;
     final DepSource project;
     final DepSource extra;
-    // final Object aliases;
+    final List<String> aliases;
 
     private CreateBasisOptions(Builder builder) {
         this.root = builder.root;
         this.user = builder.user;
         this.project = builder.project;
         this.extra = builder.extra;
+        this.aliases = builder.aliases;
     }
 
     public static Builder builder() {
@@ -23,6 +26,7 @@ public final class CreateBasisOptions {
         private DepSource user;
         private DepSource project;
         private DepSource extra;
+        private List<String> aliases;
 
         private Builder() {}
 
@@ -43,6 +47,11 @@ public final class CreateBasisOptions {
 
         public Builder extra(DepSource extra) {
             this.extra = extra;
+            return this;
+        }
+
+        public Builder aliases(List<String> aliases) {
+            this.aliases = aliases;
             return this;
         }
 
