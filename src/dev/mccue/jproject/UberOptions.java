@@ -43,7 +43,7 @@ public final class UberOptions<ConflictHandlerState> {
                 Clojure.read(":class-dir"), this.classDir
         );
         if (this.basis != null) {
-            map = ASSOC.invoke(map, Clojure.read(":basis"), this.basis);
+            map = ASSOC.invoke(map, Clojure.read(":basis"), this.basis.rawBasisObject);
         }
         if (this.main != null) {
             map = ASSOC.invoke(map, Clojure.read(":main"), SYMBOL.invoke(this.main));

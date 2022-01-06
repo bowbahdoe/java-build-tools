@@ -129,7 +129,7 @@ public final class BuildTools {
      * Delete file or directory recursively, if it exists.
      */
     public void delete(String path) {
-        API_DELETE.invoke(path);
+        API_DELETE.invoke(HASH_MAP.invoke(Clojure.read(":path"), path));
     }
 
     /**
