@@ -123,7 +123,18 @@ public final class BuildTools {
             args = ASSOC.invoke(args, Clojure.read(":extra"), toClojure.apply(options.extra));
         }
         if (options.aliases != null) {
-            args = ASSOC.invoke(args, Clojure.read(":aliases"), VEC.invoke(options.aliases));
+            args = ASSOC.invoke(args, Clojure.read(":aliases"), VEC.invoke(options.aliases
+                    .stream()
+                    .map(alias -> {
+                        if (alias.startsWith(":")) {
+                            return KEYWORD.invoke(alias);
+                        }
+                        else {
+                            return alias;
+                        }
+                    })
+                    .toList())
+            );
         }
         return new Basis(API_CREATE_BASIS.invoke(args));
     }
